@@ -1,9 +1,9 @@
 import { Link } from "react-router-dom";
-import Logo from '../assets/react.svg'
+import Logo from "../assets/react.svg";
 
 function Navbar() {
-  const user = JSON.parse(localStorage.getItem("user"));
   const token = localStorage.getItem("token");
+
 
   const handleLogout = () => {
     localStorage.removeItem("token");
@@ -12,7 +12,7 @@ function Navbar() {
   };
 
   return (
-    <nav className="navbar navbar-expand-lg navbar-dark px-3 shadow-sm">
+    <nav className="navbar navbar-expand-lg navbar-dark bg-dark px-3 shadow-sm">
       <Link to="/" className="navbar-brand d-flex align-items-center fw-bold fs-4">
         <img src={Logo} alt="logo" width="40" height="40" className="me-2" />
         Flareminds Projects
