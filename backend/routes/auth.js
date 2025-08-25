@@ -3,24 +3,41 @@ const User = require("../models/Schema");
 const jwt = require("jsonwebtoken");
 const router = express.Router();
 
-// Register
+// Middleware
+const protect = async (req, res, next) => {
+  let token;
 
+  if (req.headers.authorization && req.headers.authorization.startsWith("Bearer")) {
+    try {
+      token = req.headers.authorization.split(" ")[1];
+
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+      req.user = await User.findById(decoded.id).select("-password");
+
+      return next();
+    } catch (err) {
+      console.error("Token Verification failed: ", err.message);
+      return res.status(401).json({ message: "Not authorized, token failed" });
+    }
+  }
+  return res.status(401).json({ message: "Not authorized, token failed" });
+};
+
+// Register
 router.post("/register", async (req, res) => {
   const { firstname, lastname, mobileNumber, email, password } = req.body;
 
   try {
-    // Fix validation
     if (!firstname || !lastname || !mobileNumber || !email || !password) {
       return res.status(400).json({ message: "Please fill all the fields" });
     }
 
-    // Checking exists user
     const userExists = await User.findOne({ $or: [{ email }, { mobileNumber }] });
     if (userExists) {
       return res.status(400).json({ message: "User already exists" });
     }
 
-    // get user data
     const user = await User.create({
       firstname,
       lastname,
@@ -28,7 +45,7 @@ router.post("/register", async (req, res) => {
       email,
       password,
     });
-const token = generateToken(user._id);
+    const token = generateToken(user._id);
     res.status(201).json({
       id: user._id,
       firstname: user.firstname,
@@ -44,7 +61,6 @@ const token = generateToken(user._id);
 });
 
 // Login
-
 router.post("/login", async (req, res) => {
   const { mobileNumber, email, password } = req.body;
 
@@ -58,7 +74,7 @@ router.post("/login", async (req, res) => {
     if (!user || !(await user.matchPassword(password))) {
       return res.status(401).json({ message: "Invalid credentials" });
     }
-const token = generateToken(user._id);
+    const token = generateToken(user._id);
     res.status(200).json({
       id: user._id,
       firstname: user.firstname,
@@ -73,14 +89,13 @@ const token = generateToken(user._id);
   }
 });
 
-router.get("/me",protect, async(req,res)=>{
-  res.status(200).json(req.user)
-})
+router.get("/me", protect, async (req, res) => {
+  res.status(200).json(req.user);
+});
 
-// Generate JWT tokem
-
-const generateToken = (id)=>{
-  return jwt.sign({id},process.env.JWT_SECRET,{expiresIn:"30d"})
-}
+// Generate JWT token
+const generateToken = (id) => {
+  return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: "30d" });
+};
 
 module.exports = router;
